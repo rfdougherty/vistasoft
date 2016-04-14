@@ -1,28 +1,54 @@
-function [grads, maxB,delta,Delta] = dtiGradsBuildCharmed(maxG, Delta, delta, interact)
+function [grads, maxB,delta,Delta] = dtiGradsBuildCharmed(bvals, nDirs, nReps, maxG, Delta, delta, interact)
 %
-% [grads, maxB] = dSimGetCharmedGrads([maxG = 50.0], [Delta=optimal value to minimize TE], [delta=Delta])
+% [grads, maxB] = dSimGetCharmedGrads(bvals, nDirs, [nReps], [maxG = 50.0], [Delta=optimal value to minimize TE], [delta=Delta])
 %
-% For example, to save a gradient scheme for 3T2 at the Lucas center:
-% [grads, maxB] = dtiGradsBuildCharmed(50);
-% dlmwrite(sprintf('dwepi.%03d.grads',size(grads,2)), grads',' ');
+% bvals is a list of b-values that you want (i.e., shells) in units of ms/um^2. Don't forget the b-0!
+% nDirs is a list (same size as bvals) for the # of directions for each b-value. (For b=0, this is the # of b=0 images.)
+%
+% E.g., for 2-shells at b=1500,3000 (1.5,3.0 in ms/um^2 units) with 75 directions each and 10 b=0 images:
+%
+% grads = dtiGradsBuildCharmed([0,1.5,3.0], [10,75,75]);
+%
+% for insertion into a GE tensor.dat file:
+% fp = fopen('/tmp/tensor.dat','w'); fprintf(fp, '%d\n', size(grads,2)); for i=1:size(grads,2), fprintf(fp, '%0.6f %06f %06f\n', grads(:,i)); end; fclose(fp);
+%
+% More examples:
+%
+% A single shell with b=2500, 96 directions, and 10 b=0:
+%
+% grads = dtiGradsBuildCharmed([0,2.5], [10,96]);
+%
+% NODI-optimized 2-shell and 3-shell:
+%
+% grads = dtiGradsBuildCharmed([0,0.7,2.5], [9,30,60]);
+%
+% grads = dtiGradsBuildCharmed([0,0.9,1.8,2.7], [11,30,45,65]);
+%
+% A set of shells for 'CHARMED':
+% 
+% bvals = [0 714 1428 2285 3214 4286 5357 6429 7500 8571 10000]./1000;
+% nDirs = [1   6    7   11   13   15   17   19   21   29    31];
+% nReps = [16  2    2    2    2    2    2    2    2    2     2];
+% grads = dtiGradsBuildCharmed(bvals, nDirs, nReps);
 %
 % HISTORY:
-% 2009.05.13 RFD & AM wrote it.
-%
+% 2009.05.13 RFD & AM wrote it.% bvals = [0  900 1800 2700]./1000;
 
-g = 42576.0; % gyromagnetic ratio for H in kHz/T = (cycles/millisecond)/T
-nSlices = 60;
-
+if(~exist('nReps','var') || isempty(nReps))
+    nReps = 1;
+end
+if(numel(nReps)<numel(bvals))
+    nReps = repmat(nReps(1), 1, numel(bvals));
+end
 if(~exist('maxG','var') || isempty(maxG))
     maxG = 50.0; % Max gradient in mT/m
 end
-if(~exist('interact','var') || isempty(maxG))
-    interact = 1; % Max gradient in mT/m
+if(~exist('interact','var') || isempty(interact))
+    interact = 0;
 end
 
-bvals = [0 714 1428 2285 3214 4286 5357 6429 7500 8571 10000]./1000;
-nDirs = [1   6    7   11   13   15   17   19   21   29    31];
-nReps = [16  2    2    2    2    2    2    2    2    2     2];
+g = 42576.0; % gyromagnetic ratio for H in kHz/T = (cycles/millisecond)/T
+nSlices = 65;
 
 maxB = max(bvals);
 
@@ -31,7 +57,7 @@ maxB = max(bvals);
 % (below) work better at keeping high bvalue scans separated from other
 % high b-value scans.
 [junk,si] = sort(bvals,'descend');
-si = si([end,1:end-1]);
+%si = si([end,1:end-1]);
 bvals = bvals(si);
 nDirs = nDirs(si);
 nReps = nReps(si);
@@ -72,7 +98,7 @@ end;
 % Now compute the Gradient amplitudes for all the b-values
 G = sqrt(bvals./((2*pi*g).^2 * delta.^2 * (Delta-delta/3))) * 1e9;
 
-ptsDir = fullfile(fileparts(which('mrDiffusion')),'preprocess','caminoPts');
+ptsDir = fullfile(fileparts(mfilename('fullpath')),'caminoPts')
 
 n = numel(bvals);
 if interact==1
@@ -101,6 +127,9 @@ for(ii=1:n)
     grads(:,availInds(inds)) = curGrads;
     availInds = setdiff(availInds,availInds(inds));
     if interact==1
+bvals = [0 3000]./1000;
+nDirs = [1   138];
+nReps = [10   1    1    1];
     plot3(curGrads(1,:),curGrads(2,:),curGrads(3,:),[c(mod(ii-1,numel(c))+1) '.']);
     end;
 end
