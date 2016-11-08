@@ -25,7 +25,7 @@ function [grads, maxB,delta,Delta] = dtiGradsBuildCharmed(bvals, nDirs, nReps, m
 % grads = dtiGradsBuildCharmed([0,0.9,1.8,2.7], [11,30,45,65]);
 %
 % A set of shells for 'CHARMED':
-% 
+%
 % bvals = [0 714 1428 2285 3214 4286 5357 6429 7500 8571 10000]./1000;
 % nDirs = [1   6    7   11   13   15   17   19   21   29    31];
 % nReps = [16  2    2    2    2    2    2    2    2    2     2];
@@ -126,13 +126,6 @@ for(ii=1:n)
     inds = floor([1:numel(availInds)/size(curGrads,2):numel(availInds)]);
     grads(:,availInds(inds)) = curGrads;
     availInds = setdiff(availInds,availInds(inds));
-    if interact==1
-bvals = [0 3000]./1000;
-nDirs = [1   138];
-nReps = [10   1    1    1];
-    plot3(curGrads(1,:),curGrads(2,:),curGrads(3,:),[c(mod(ii-1,numel(c))+1) '.']);
-    end;
 end
 
-%sqrt(sum(allGrads.^2))'
 return;
